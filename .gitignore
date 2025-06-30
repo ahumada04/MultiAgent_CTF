@@ -1,4 +1,5 @@
-secret.txt
 .env
+secret.txt
 flag.txt
+solution.py
 __pycache__/
