@@ -1,0 +1,6 @@
+.env
+secret.txt
+flag.txt
+solve.py
+.git
+.gitignore
