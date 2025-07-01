@@ -9,41 +9,52 @@ load_dotenv()
 
 # Can extend below with {context} & {resources}
 planner_template = """
-You are an expert CTF solver and are tasked with creating a detailed plan of how to generate a solution script to a team of CTF solvers.
-Your output MUST use the following exact headers (case-sensitive):
+You are a planner AI agent and are tasked with creating a detailed plan of how to write a solution script
+to retrieve the flag in python for the CTF problem below. Your plan will be given to another AI agent to 
+generate the actual python solving script. Think very deep.
 
-Context:
-<one or more lines describing the shared context>
+Consider the following when generating:
+1. Assume the AI agent has 0 external knowledge at all.
+2. If nesscarry, provide explict knowledge such as needed array values and techniques to solve.
+3. Do NOT generate a plan for a brute force solution.
+4. Be as exact as possible
 
+Follow the format below:
 Steps:
 1. <first step>
 2. <second step>
 3. <…>
 
-Problem: {problem}
-
-Consider the following for context:
-1. Problem Type (Cryptography, Reverse engineering, Web exploitation, binary exploitation, Crypto, Other). If other, specify as much as possible.
-
-Consider the following for each step:
-1. Required resources and tools
-2. Potential challenges and means to overcome such
+Problem provided below: 
+{problem}
 """
 
 solver_template = """
-You are an expert CTF solver tasked with executing the following plan to generate a solution python script.
+You are an AI agent tasked with executing the following plan to generate a solution python script. Think very deep.
 
-Problem:
-{problem}
+Consider the following:
+1. Strictly return the python script ONLY. No additional text ever.
+2. The script, when ran, should ONLY print out the flag.
+3. Assume absolutely 0 edits are possible, return a script completley finished.
+4. If you cannot solve, only state "CANNOT SOLVE" and provide briefly why.
 
 Plan: 
 {plan}
 
-Consider the following:
-1. Strictly return the python script ONLY.
-2. Have the script take in the problem as input as output ONLY the flag,
-3. If you cannot solve, only state "CANNOT SOLVE" and provide breifly why.
-4. Check over your work multiple times
+"""
+
+independent_template = """
+You are tasked with generating a python script to solve the following CTF problem below. 
+
+You output should strictly adhere the following:
+1. Return a solving script ONLY, no additional text at all.
+2. Your solution should NOT be brute force
+3. Assume zero external help. No user input or code edits ever.
+4. The code should output the actual solutino flag ONLY.
+5. If you cannot solve, only state "CANNOT SOLVE" and provide briefly why.
+
+Problem:
+{problem}
 """
 
 class Agent:
@@ -70,33 +81,59 @@ class Planner(Agent):
         raw_output = self.llm.invoke(input_prompt)
         output_txt = raw_output.content
         return output_txt    
-    # # generates DICT of executables to pass to multiple solver agents
-    # def generate_plan2(self, problem: str) -> dict:
-    #     input_prompt = self._generate_prompt(problem)
-    #     raw_output = self.llm.invoke(input_prompt)
-    #     output_txt = raw_output.content
-    #     output_json = json.loads(output_txt)
-    #     return output_json
 
 class Solver(Agent):
     def __init__(self):
         super().__init__(solver_template)
     # No need for initial_prompt FOR NOW
-    def generate_solution(self, problem:str, plan:str) -> str:
+    def generate_solution(self, plan:str) -> str:
         # Helper Method to create a plan based on the problem and initial prompt
-        input_prompt = self.custom_prompt.format(problem=problem, plan=plan)
+        input_prompt = self.custom_prompt.format(plan=plan)
         raw_output = self.llm.invoke(input_prompt)
         output_txt = raw_output.content
+        # EXTRACT ONLY THE CODE PORTION
+        sol_script = None
         return output_txt    
 
+# FOR TESTING ONLY
+class Independent(Agent):
+    def __init__(self):
+        super().__init__(independent_template)
+    def generate_solution(self, problem:str) -> str:
+        # Helper Method to create a plan based on the problem and initial prompt
+        input_prompt = self.custom_prompt.format(problem=problem)
+        raw_output = self.llm.invoke(input_prompt)
+        output_txt = raw_output.content
+        # EXTRACT ONLY THE CODE PORTION
+        sol_script = None
+        return output_txt    
+
+# class Executer(Agent):
+#     def __init__(self):
+#         super().__init__(executer_template)
+#     # Def generate actual flag
+#     def generate_flag(self, problem:str, solve_script) -> str:
+#         # RUN THE CODE AND EXTRACT THE FLAG
+#         pass
 
 
 # local testing
 if __name__ == "__main__":
     planner = Planner()
     solver = Solver()
-    with open("problem.txt", 'r') as file:
-            problem = file.read()
-    plan = planner.generate_plan(problem=problem)
-    solution = solver.generate_solution(problem=problem, plan=plan)
+    independent = Independent()
+    # executer = Executer()
+
+    with open("marx.c", 'r') as file:
+        problem = file.read()
+
+    # plan = planner.generate_plan(problem=problem)
+    # print(plan)
+    # solution_script = solver.generate_solution(plan=plan)
+    # print(solution_script)
+    solution = independent.generate_solution(problem=problem)
     print(solution)
+    #flag = executer.generate_flag(problem=problem, code=solution_script)
+
+    #print("Extracted Flag:", flag)
+
