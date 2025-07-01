@@ -197,6 +197,17 @@ def sanitize_script(ai_output:str) -> str:
     else:
         return '\n'.join(lines[1:-1])
 
+def final_solve():
+    planner = Planner()
+    solver = Solver()
+
+    with open("marx.c", 'r') as file:
+        problem = file.read()
+
+    plan = planner.generate_plan(problem=problem)
+    solution = solver.solve(plan)
+    print(solution)
+
 # local testing
 if __name__ == "__main__":
     planner = Planner()

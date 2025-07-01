@@ -8,6 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENTRYPOINT [ "python", "./main.py" ]
-
-CMD ["problem.txt"]
+CMD [ "python", "./main.py" ]
